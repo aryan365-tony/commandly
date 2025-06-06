@@ -30,22 +30,23 @@ class _StartScreenState extends State<StartScreen> {
               itemBuilder: (context, i) {
                 final layout = layouts[i];
                 final protocol = layout.commConfig['protocol'] ?? '';
+                /*
                 final host = layout.commConfig['host'] ?? '';
                 final port = layout.commConfig['port'] ?? '';
                 final topic = layout.commConfig['topic'];
+                */
                 final isMqtt = protocol.toLowerCase() == 'mqtt';
 
-                final subtitleLines = <String>[
+                /*final subtitleLines = <String>[
                   'Protocol: $protocol',
                   'Host: $host:$port',
                   if (isMqtt && (topic?.isNotEmpty ?? false)) 'Topic: $topic',
-                ].join('\n');
+                ].join('\n');*/
 
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                   child: ListTile(
                     title: Text(layout.name),
-                    subtitle: Text(subtitleLines),
                     isThreeLine: isMqtt,
                     onTap: () {
                       Navigator.push(
@@ -99,6 +100,7 @@ class _StartScreenState extends State<StartScreen> {
             setState(() {});
           });
         },
+        shape: const CircleBorder(),
         child: const Icon(Icons.add),
       ),
     );

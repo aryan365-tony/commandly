@@ -3,8 +3,10 @@
 import 'package:flutter/material.dart';
 import '../models/layout.dart';
 import '../models/control.dart';
-import '../services/communication_service.dart';
+import '../services/comm_handler.dart';           // only one interface
+import '../services/communication_service.dart';   // for start/stop
 import '../services/comm_type.dart';
+import '../services/comm_factory.dart';
 import '../widgets/locked_button.dart';
 import '../widgets/locked_slider.dart';
 import '../widgets/locked_joystick.dart';
@@ -20,61 +22,75 @@ class ControlScreen extends StatefulWidget {
 
 class _ControlScreenState extends State<ControlScreen> {
   final Map<ControlData, GlobalKey> _globalKeys = {};
+  bool _isConnected = false;
+  late final CommHandler _commHandler;
 
-  /// Gathers values from all locked widgets: 
-  /// • Button → [0] or [1] 
-  /// • Slider → [value] 
-  /// • Joystick → [x, y]
+  @override
+  void initState() {
+    super.initState();
+    // Create a GlobalKey for each ControlData
+    for (var data in widget.layout.controls) {
+      _globalKeys[data] = GlobalKey();
+    }
+    // Instantiate the handler using the one CommHandler interface
+    final typeName = widget.layout.commConfig['type']!;
+    final type = CommTypeExtension.fromString(typeName);
+    _commHandler = CommFactory.create(type, widget.layout.commConfig);
+  }
+
+  @override
+  void dispose() {
+    if (_isConnected) {
+      CommunicationService.stop();
+      _commHandler.disconnect();
+    }
+    super.dispose();
+  }
+
   List<int> _collectAllValues() {
-    final all = <int>[];
+    final values = <int>[];
     for (var data in widget.layout.controls) {
       final key = _globalKeys[data];
       if (key == null) continue;
       final state = key.currentState;
       if (state is LockedButtonState) {
-        all.addAll(state.getValues());
+        values.addAll(state.getValues());
       } else if (state is LockedSliderState) {
-        all.addAll(state.getValues());
+        values.addAll(state.getValues());
       } else if (state is LockedJoystickState) {
-        all.addAll(state.getValues());
+        values.addAll(state.getValues());
       }
     }
-    return all;
+    return values;
   }
 
-  @override
-  void initState() {
-    super.initState();
-    // Create a GlobalKey for each ControlData so we can read its state later:
-    for (var data in widget.layout.controls) {
-      _globalKeys[data] = GlobalKey();
+  Future<void> _toggleConnection() async {
+    if (!_isConnected) {
+      try {
+        await _commHandler.connect();
+        CommunicationService.startWithHandler(
+          _commHandler,
+          _collectAllValues,
+          intervalMs: 200,
+        );
+        setState(() => _isConnected = true);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Connection failed: $e')),
+        );
+      }
+    } else {
+      CommunicationService.stop();
+      _commHandler.disconnect();
+      setState(() => _isConnected = false);
     }
-
-    // Determine which protocol to use based on saved commConfig['type']:
-    final typeName = widget.layout.commConfig['type']!;
-    final type = CommTypeExtension.fromString(typeName);
-
-    // Start sending joystick data every 200ms (for example):
-    CommunicationService.start(
-      type,
-      widget.layout.commConfig,
-      _collectAllValues,
-    );
-  }
-
-  @override
-  void dispose() {
-    CommunicationService.stop();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final lockedWidgets = <Widget>[];
-
     for (var data in widget.layout.controls) {
-      final key = _globalKeys[data]!;
-
+      final key = _globalKeys[data] as GlobalKey;
       if (data.type == ControlType.button) {
         lockedWidgets.add(
           LockedButton(
@@ -84,24 +100,20 @@ class _ControlScreenState extends State<ControlScreen> {
           ),
         );
       } else if (data.type == ControlType.slider) {
-        // Fix: clamp(...) returns num, so cast to double
-        final rawSliderValue = data.values[0].toDouble();
-        final clampedSlider = (rawSliderValue.clamp(0, 255)) as double;
-
+        final rawVal = data.values[0].toDouble();
+        final clamped = (rawVal.clamp(0, 255)) as double;
         lockedWidgets.add(
           LockedSlider(
             key: key,
             position: data.position,
-            initialValue: clampedSlider,
+            initialValue: clamped,
           ),
         );
       } else if (data.type == ControlType.joystick) {
-        // Fix: clamp(...) returns num, so cast to double
         final rawX = data.values[0].toDouble();
         final rawY = data.values[1].toDouble();
         final clampedX = (rawX.clamp(0, 255)) as double;
         final clampedY = (rawY.clamp(0, 255)) as double;
-
         lockedWidgets.add(
           LockedJoystick(
             key: key,
@@ -115,6 +127,26 @@ class _ControlScreenState extends State<ControlScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(widget.layout.name)),
       body: Stack(children: lockedWidgets),
+      floatingActionButton: OutlinedButton(
+        onPressed: _toggleConnection,
+        style: OutlinedButton.styleFrom(
+          shape: const CircleBorder(),
+          side: BorderSide(
+            color: Theme.of(context).colorScheme.primary,
+            width: 2,
+          ),
+          backgroundColor: _isConnected
+              ? Theme.of(context).colorScheme.primary
+              : Colors.transparent,
+          minimumSize: const Size(56, 56),
+        ),
+        child: Icon(
+          _isConnected ? Icons.link_off : Icons.link,
+          color: _isConnected
+              ? Colors.white
+              : Theme.of(context).colorScheme.primary,
+        ),
+      ),
     );
   }
 }

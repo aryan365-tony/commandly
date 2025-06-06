@@ -7,7 +7,6 @@ import 'mqtt_handler.dart';
 import 'websocket_handler.dart';
 import 'udp_handler.dart';
 import 'ble_handler.dart';
-import 'bluetooth_handler.dart'; // classic BT if you still need it
 
 class CommFactory {
   static CommHandler create(
@@ -26,11 +25,6 @@ class CommFactory {
       case CommType.websocket:
         return WebSocketHandler(config['url']!);
 
-      case CommType.bluetooth:
-        return BluetoothHandler(
-          deviceId: config['deviceId']!,
-          pin: config['pin'] ?? '',
-        );
 
       case CommType.udp:
         return UdpHandler(

@@ -25,6 +25,7 @@ class MqttHandler implements CommHandler {
   Future<void> connect() async {
     _client = MqttServerClient(host, '');
     _client.port = port;
+    _client.secure = false;
     _client.logging(on: false);
     _client.keepAlivePeriod = 20;
     _client.onDisconnected = _onDisconnected;

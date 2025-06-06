@@ -109,26 +109,38 @@ class _LayoutBuilderScreenState extends State<LayoutBuilderScreen> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             FloatingActionButton(
+              shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(32), // 👈 change this value
+                ),
               heroTag: 'joy_btn',
               onPressed: _addJoystick,
               child: const Icon(Icons.gamepad),
             ),
             const SizedBox(height: 12),
             FloatingActionButton(
+              shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(32), // 👈 change this value
+                ),
               heroTag: 'btn_btn',
               onPressed: _addButton,
               child: const Icon(Icons.radio_button_checked),
             ),
             const SizedBox(height: 12),
             FloatingActionButton(
+              shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(32), // 👈 change this value
+                ),
               heroTag: 'sld_btn',
               onPressed: _addSlider,
               child: const Icon(Icons.linear_scale),
             ),
             const SizedBox(height: 20),
             FloatingActionButton.extended(
+              shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(32), // 👈 change this value
+                ),
               heroTag: 'next_btn',
-              label: const Text('Next →'),
+              label: const Text('Next'),
               icon: const Icon(Icons.arrow_forward),
               onPressed: _goToConfig,
             ),

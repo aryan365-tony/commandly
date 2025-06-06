@@ -1,37 +1,36 @@
-// ignore_for_file: unused_field
+// lib/services/communication_service.dart
 
 import 'dart:async';
-import '../services/comm_type.dart';
-import 'comm_factory.dart';
-import 'comm_handler.dart';
+import 'comm_handler.dart'; // ← Import the real CommHandler interface
 
+/// CommunicationService is responsible for driving the periodic send loop.
+/// We hold a reference to the currently active handler, and a Timer.
 class CommunicationService {
-  static CommType? _type;
-  static CommHandler? _handler;
+  static CommHandler? _activeHandler;
   static Timer? _timer;
 
-  /// Call this when entering “live” mode for a saved layout.
-  static Future<void> start(
-      CommType type,
-      Map<String, String> commConfig,
-      List<int> Function() getDataCallback,
-      ) async {
-    _type = type;
-    _handler = CommFactory.create(type, commConfig);
-    await _handler!.connect();
-
-    // Send every 200ms (adjust as needed):
-    _timer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
-      final data = getDataCallback();
-      _handler!.sendJoystickData(data);
+  /// Starts a periodic loop that, every [intervalMs] milliseconds, calls
+  /// `handler.sendJoystickData(readValues())`.
+  ///
+  /// You must first call handler.connect() (which is done by ControlScreen below).
+  static void startWithHandler(
+    CommHandler handler,
+    List<int> Function() readValues, {
+    int intervalMs = 200,
+  }) {
+    _activeHandler = handler;
+    _timer?.cancel();
+    _timer = Timer.periodic(Duration(milliseconds: intervalMs), (_) {
+      final data = readValues();
+      _activeHandler?.sendJoystickData(data);
     });
   }
 
-  /// Call this when exiting “live” mode (dispose screen).
+  /// Stops the periodic send loop (if any). Does NOT disconnect the handler;
+  /// you must call handler.disconnect() separately.
   static void stop() {
     _timer?.cancel();
-    _handler?.disconnect();
-    _handler = null;
-    _type = null;
+    _timer = null;
+    _activeHandler = null;
   }
 }

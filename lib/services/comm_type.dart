@@ -2,10 +2,7 @@ enum CommType {
   mqtt,
   http,
   websocket,
-  bluetooth,
   udp,
-
-  // Add BLE here:
   ble,
 }
 
@@ -19,8 +16,6 @@ extension CommTypeExtension on CommType {
         return 'HTTP (REST)';
       case CommType.websocket:
         return 'WebSocket';
-      case CommType.bluetooth:
-        return 'Bluetooth (Classic)';
       case CommType.udp:
         return 'UDP';
       case CommType.ble:
